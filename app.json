@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "sunshower_v05",
+    "slug": "sunshower_v05",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
