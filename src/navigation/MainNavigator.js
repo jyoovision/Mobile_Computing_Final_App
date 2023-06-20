@@ -10,7 +10,7 @@ import ProgressBar from "../services/Progress-Camera"; // 프로그레스 바 �
 
 import Init from "../screens/Init";
 import LogIn from "../screens/LogIn";
-import SignIn from "../screens/SignIn";
+import SignUp from "../screens/SignUp";
 import Main from "../screens/Main";
 import Group from "../screens/Group";
 import Global from "../screens/Global";
@@ -204,7 +204,7 @@ function MainNavigator() {
     >
       <Stack.Screen name="Init" component={Init} options={{ headerShown: false }} />
       <Stack.Screen name="LogIn" component={LogIn} options={{ headerShown: false }} />
-      <Stack.Screen name="SignIn" component={SignIn} options={{ headerShown: false }} />
+      <Stack.Screen name="SignUp" component={SignUp} options={{ headerShown: false }} />
       <Stack.Screen
         name="Sunshower"
         options={{ title: "SUN SHOWER" }}

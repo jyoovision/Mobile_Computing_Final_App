@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from "react-native"; // Alert 추가
 import { registerUser } from "../database/FirebaseAuth";
 import { CommonActions } from "@react-navigation/native";
-import { Gravity } from "expo-sensors/build/DeviceMotion";
 
-export default function SignIn({ navigation }) {
+export default function SignUp({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -35,7 +34,7 @@ export default function SignIn({ navigation }) {
         })
       );
     } else {
-      Alert.alert("Sign in Failed", response.error); // 가입 실패시 Alert으로 오류 메시지 출력
+      Alert.alert("Sign up Failed", response.error); // 가입 실패시 Alert으로 오류 메시지 출력
     }
   };
 
@@ -62,7 +61,7 @@ export default function SignIn({ navigation }) {
         style={styles.input}
       />
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Sign In</Text>
+        <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
     </View>
   );

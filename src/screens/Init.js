@@ -10,8 +10,8 @@ export default function Init({ navigation }) {
           <Text>Log In</Text>
         </TouchableOpacity>
         <Text>|</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
-          <Text>Sign In</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+          <Text>Sign Up</Text>
         </TouchableOpacity>
       </View>
     </View>
