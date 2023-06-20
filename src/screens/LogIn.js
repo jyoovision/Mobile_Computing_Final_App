@@ -28,15 +28,22 @@ export default function LogIn({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <TextInput placeholder="Email" onChangeText={setEmail} style={styles.input} />
+      <Text style={styles.title}>SUN SHOWER</Text>
+      <TextInput
+        placeholder="Email"
+        placeholderTextColor="darkgray"
+        onChangeText={setEmail}
+        style={styles.input}
+      />
       <TextInput
         placeholder="Password"
+        placeholderTextColor="darkgray"
         secureTextEntry
         onChangeText={setPassword}
         style={styles.input}
       />
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Log in</Text>
+        <Text style={styles.buttonText}>Log In</Text>
       </TouchableOpacity>
     </View>
   );
@@ -50,22 +57,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 60,
   },
+  title: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
   input: {
+    color: "black",
     width: "80%",
     height: 28,
     borderColor: "gray",
     borderWidth: 1,
-    marginBottom: 10,
+    marginVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 20,
   },
   button: {
     backgroundColor: "transparent",
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
+    marginTop: 10,
   },
   buttonText: {
     color: "#007AFF",
-    fontSize: 16,
+    fontSize: 20,
     textAlign: "center",
   },
 });

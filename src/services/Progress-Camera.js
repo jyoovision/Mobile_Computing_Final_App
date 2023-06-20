@@ -20,7 +20,6 @@ import Geocoder from "react-native-geocoding";
 import { UserContext } from "../database/UserContext";
 
 const { width, height } = Dimensions.get("window");
-
 const ProgressBar = () => {
   const { progress, completed } = useSunDetector();
   const [activateParticle, setActivateParticle] = useState(true);
@@ -34,15 +33,14 @@ const ProgressBar = () => {
   const isFacingUpwards = useSkyDirectionFinder();
   // const isFacingUpwards = true; // test code
   const cameraRef = useRef(null);
+  const [isUploading, setUploading] = useState(false);
 
   useEffect(() => {
     (async () => {
       // 위치 정보가 있으면 Geocoder로 주소로 변환
       if (location) {
         Geocoder.init("AIzaSyBn4_Xwd9CZbXXPqSuToZpIPgN0YTs_xSA"); // Geocoding API key
-
         const { latitude, longitude } = location;
-
         // Geocoder로 주소로 변환
         Geocoder.from(latitude, longitude)
           .then((json) => {
@@ -53,20 +51,17 @@ const ProgressBar = () => {
       }
     })();
   }, [user]); // user가 변경될 때마다 재실행
-
   const handleAnimationEnd = () => {
     setActivateParticle(false);
   };
-
   const handleMinimize = () => {
     setMinimized(!minimized);
   };
-
   const openCamera = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
     if (status === "granted") {
       setCameraVisible(true);
-      console.log(`Camera visibility changed: ${cameraVisible}`);
+      // console.log(`Camera visibility changed: ${cameraVisible}`);
     } else {
       Alert.alert(
         "Camera Permission Required",
@@ -75,12 +70,10 @@ const ProgressBar = () => {
       );
     }
   };
-
   const closeCamera = () => {
     setCameraVisible(false);
     setCapturedPhoto(null);
   };
-
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
@@ -103,6 +96,7 @@ const ProgressBar = () => {
     if (!capturedPhoto) {
       return;
     }
+    setUploading(true); // Start uploading
     try {
       // fetch API를 사용하여 이미지를 blob으로 가져옵니다.
       const response = await fetch(capturedPhoto.uri);
@@ -112,22 +106,28 @@ const ProgressBar = () => {
       const postData = {
         caption: skylogCaption, // 실제 앱에서는 사용자가 입력한 캡션을 사용해야 합니다.
         location: address,
+        likes: 0,
         // 필요한 추가 데이터를 이곳에 작성합니다.
       };
-      const successful = await createPost(postData, blob);
 
+      const successful = await createPost(postData, blob);
       if (successful) {
         Alert.alert("Success!", "Your skylog has been uploaded.");
+        setUploading(false); // Stop uploading if successful
       } else {
         Alert.alert("Error!", "Could not upload the skylog.");
+        setUploading(false); // Stop uploading if failed
       }
     } catch (error) {
       Alert.alert("Error!", "Could not upload the image.");
       console.error(error);
+      setUploading(false); // Stop uploading if error occurs
+    } finally {
+      setCapturedPhoto(null);
+      setUploading(false);
+      setSkylogCaption("");
+      closeCamera();
     }
-
-    // 카메라를 닫습니다.
-    closeCamera();
   };
 
   return (
@@ -135,10 +135,11 @@ const ProgressBar = () => {
       <Progress.Bar
         style={{ marginTop: 5 }}
         progress={progress}
-        width={300}
+        width={width - 20}
         color="#AEDDFF"
         borderColor="#0099FF"
       />
+
       <Text>{Math.floor(progress * 100)}%</Text>
 
       {completed && minimized && (
@@ -149,13 +150,17 @@ const ProgressBar = () => {
 
       {completed && !minimized && (
         <>
-          <Text>Congratulations! You did it!</Text>
-          <TouchableOpacity style={styles.opencamera} onPress={openCamera}>
-            <Text style={{ color: "#0099FF" }}>Open Camera</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.minimize} onPress={handleMinimize}>
-            <Text>△</Text>
-          </TouchableOpacity>
+          <View style={styles.uppermessage}>
+            <Text style={{ color: "white" }}>Congratulations! You did it!</Text>
+
+            <TouchableOpacity style={styles.opencamera} onPress={openCamera}>
+              <Text style={{ color: "#0099FF", fontSize: 18, fontWeight: "800" }}>Open Camera</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.minimize} onPress={handleMinimize}>
+              <Text>△</Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
 
@@ -174,19 +179,41 @@ const ProgressBar = () => {
       {cameraVisible && (
         <>
           <View style={styles.camerabackground}></View>
+
           <View style={styles.cameraframe}>
             <TouchableOpacity style={styles.closecamera} onPress={closeCamera}>
               <Text>cancel</Text>
             </TouchableOpacity>
-            <View style={styles.cameranotice}>
-              <Text>Take a photo of your sky now</Text>
-            </View>
+
+            {!capturedPhoto && (
+              <View style={styles.cameranotice}>
+                <Text style={{ color: "white", fontSize: 18 }}>Take a picture of the sky</Text>
+              </View>
+            )}
+
+            {capturedPhoto && (
+              <>
+                <View style={styles.cameranotice}>
+                  <Text style={{ color: "white", fontSize: 18 }}>Share with your friends</Text>
+                </View>
+
+                <View style={styles.caption}>
+                  <TextInput
+                    placeholder="Enter one-line comment"
+                    placeholderTextColor="#0099FF"
+                    onChangeText={setSkylogCaption}
+                  />
+                </View>
+              </>
+            )}
+
             <Camera style={styles.camera} type={Camera.Constants.Type.back} ref={cameraRef}>
               {cameraProgressing && (
                 <Text style={{ position: "absolute", bottom: 10, color: "white", zIndex: 1 }}>
                   Processing...
                 </Text>
               )}
+
               {capturedPhoto && (
                 <>
                   <Image source={{ uri: capturedPhoto.uri }} style={styles.capturedPhoto} />
@@ -218,14 +245,13 @@ const ProgressBar = () => {
 
             {capturedPhoto && (
               <>
-                <View style={styles.caption}>
-                  <TextInput
-                    placeholder="Enter your skylog caption"
-                    onChangeText={setSkylogCaption}
-                  />
-                </View>
-                <TouchableOpacity style={styles.upload} onPress={uploadSkylog}>
-                  <Text>upload</Text>
+                <Text style={{ color: "white", marginTop: 15 }}>{address}</Text>
+                <TouchableOpacity
+                  style={styles.upload}
+                  onPress={uploadSkylog}
+                  disabled={isUploading}
+                >
+                  <Text>{isUploading ? "Uploading..." : "Upload"}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -257,14 +283,22 @@ const styles = StyleSheet.create({
   minimize: {
     width: 30,
     height: 20,
-    // backgroundColor: "red",
+    justifyContent: "center",
     alignItems: "center",
   },
+  uppermessage: {
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    width: width - 30,
+    alignItems: "center",
+    borderRadius: 40,
+    paddingTop: 10,
+  },
   opencamera: {
-    width: 100,
-    height: 30,
+    // width: 100,
+    // height: 30,
     alignItems: "center",
     justifyContent: "center",
+    marginVertical: 8,
   },
   camerabackground: {
     backgroundColor: "#000000",
@@ -274,44 +308,39 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   cameraframe: {
-    flex: 1,
-    top: -80,
-    justifyContent: "center",
+    position: "absolute",
+    // top: -90,
+    // justifyContent: "center",
     alignItems: "center",
   },
   cameranotice: {
-    backgroundColor: "white",
-    top: 0,
     width: width - 30,
-    height: 30,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 15,
   },
   camera: {
     width: width - 30,
     height: width - 30,
-    borderRadius: 10,
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 15,
   },
   closecamera: {
     backgroundColor: "red",
     zIndex: 2,
-    marginBottom: 15,
+    marginTop: 15,
   },
   takephoto: {
     backgroundColor: "green",
-    marginBottom: 10,
+    marginTop: 15,
   },
   retryphoto: {
     backgroundColor: "white",
-    marginBottom: 10,
+    marginTop: 15,
   },
   capturedPhoto: {
     position: "absolute",
-    borderRadius: 10,
     top: 0,
     left: 0,
     right: 0,
@@ -325,10 +354,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
+    marginTop: 15,
   },
   upload: {
     backgroundColor: "#0099FF",
+    marginTop: 15,
   },
 });
 

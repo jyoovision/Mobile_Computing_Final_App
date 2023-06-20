@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Button, TextInput, StyleSheet, Alert } from "react-native"; // Alert 추가
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from "react-native"; // Alert 추가
 import { registerUser } from "../database/FirebaseAuth";
 import { CommonActions } from "@react-navigation/native";
+import { Gravity } from "expo-sensors/build/DeviceMotion";
 
 export default function SignIn({ navigation }) {
   const [email, setEmail] = useState("");
@@ -40,15 +41,29 @@ export default function SignIn({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <TextInput placeholder="Email" onChangeText={setEmail} style={styles.input} />
+      <Text style={styles.title}>SUN SHOWER</Text>
+      <TextInput
+        placeholder="Email"
+        placeholderTextColor="darkgray"
+        onChangeText={setEmail}
+        style={styles.input}
+      />
       <TextInput
         placeholder="Password"
+        placeholderTextColor="darkgray"
         secureTextEntry
         onChangeText={setPassword}
         style={styles.input}
       />
-      <TextInput placeholder="Name" onChangeText={setName} style={styles.input} />
-      <Button title="Sign in" onPress={handleSubmit} />
+      <TextInput
+        placeholder="Name"
+        placeholderTextColor="darkgray"
+        onChangeText={setName}
+        style={styles.input}
+      />
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>Sign In</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -61,13 +76,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 60,
   },
+  title: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
   input: {
+    color: "black",
     width: "80%",
     height: 28,
     borderColor: "gray",
     borderWidth: 1,
-    marginBottom: 10,
+    marginVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 20,
+  },
+  button: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 18,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "#007AFF",
+    fontSize: 20,
+    textAlign: "center",
   },
 });

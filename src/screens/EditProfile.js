@@ -188,7 +188,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    justifyContent: "center", // Add this
+    paddingTop: 50,
+    // justifyContent: "center",
   },
   profile: {
     alignItems: "center",

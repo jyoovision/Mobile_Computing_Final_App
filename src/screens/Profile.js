@@ -56,7 +56,7 @@ const Profile = ({ navigation }) => {
             source={{
               uri: user.URI,
             }}
-            containerStyle={{ marginRight: 10 }}
+            containerStyle={{}}
           />
           <Text style={styles.title}>{user.name}</Text>
           <Text>{user.username}</Text>

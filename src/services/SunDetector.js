@@ -47,7 +47,7 @@ const useSunDetector = () => {
         (location) => {
           const { latitude, longitude } = location.coords;
           setGpsAccuracy(location.coords.accuracy);
-          console.log(`GPS accuracy: ${location.coords.accuracy} meters`);
+          // console.log(`GPS accuracy: ${location.coords.accuracy} meters`);
 
           // Update weather data immediately upon location change
           if (!weatherInterval) {
@@ -124,9 +124,9 @@ const useSunDetector = () => {
         } else if (gpsAccuracy <= 15) {
           gpsIntensity = 10;
         } else if (gpsAccuracy <= 25) {
-          gpsIntensity = 5;
+          gpsIntensity = 1;
         } else if (gpsAccuracy <= 50) {
-          gpsIntensity = 0.01;
+          gpsIntensity = 0;
         }
 
         //Wifi Intensity Algorithm
@@ -137,10 +137,10 @@ const useSunDetector = () => {
         }
 
         //console.log()
-        console.log(`weather : ${weatherIntensity}`);
-        console.log(`day light : ${dayIntensity}`);
-        console.log(`gps accuarcy : ${gpsIntensity}`);
-        console.log(`wifi connect : ${wifiIntensity}`);
+        // console.log(`weather : ${weatherIntensity}`);
+        // console.log(`day light : ${dayIntensity}`);
+        // console.log(`gps accuarcy : ${gpsIntensity}`);
+        // console.log(`wifi connect : ${wifiIntensity}`);
 
         const sunEst = dayIntensity * gpsIntensity * weatherIntensity * wifiIntensity * 0.00000001;
 
@@ -161,7 +161,7 @@ const useSunDetector = () => {
     return () => clearInterval(progressInterval);
   }, [currentWeather, gpsAccuracy, isWifi]);
 
-  // // 카메라 test code
+  // //  카메라 test code
   // useEffect(() => {
   //   const interval = setInterval(() => {
   //     setProgress((oldProgress) => {
@@ -172,7 +172,7 @@ const useSunDetector = () => {
   //       }
   //       return oldProgress + 0.1;
   //     });
-  //   }, 100);
+  //   }, 1000);
 
   //   return () => clearInterval(interval);
   // }, []);

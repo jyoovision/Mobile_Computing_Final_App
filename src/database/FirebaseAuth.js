@@ -12,6 +12,9 @@ import {
   addDoc,
   query,
   where,
+  orderBy,
+  limit,
+  increment,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Firebase Storage를 위한 import
 
@@ -44,7 +47,8 @@ export async function registerUser(email, password, name, username, URI, descrip
     };
 
     await setDoc(doc(db, "users", user.uid), userData);
-    console.log("User registered with email and password and additional data: ", userData);
+    // console.log("User registered with email and password and additional data: ", userData);
+    console.log("User registered with email and password and additional data");
     await loginUser(email, password);
     return { success: true }; // Registration was successful, so return an object with success property
   } catch (error) {
@@ -58,7 +62,8 @@ export async function loginUser(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    console.log("User logged in with email and password: ", user);
+    // console.log("User logged in with email and password: ", user);
+    console.log("User logged in with email and password");
     return { success: true }; // Login was successful, so return an object with success property
   } catch (error) {
     console.error("Error logging in with password and email", error);
@@ -129,32 +134,35 @@ export async function createPost(postData, imageFile) {
   }
 }
 
-//
-export async function fetchUserProfileImage(userId) {
-  try {
-    const userDoc = await getDoc(doc(db, "users", userId));
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      return userData.URI; // 'URI' 필드가 프로필 이미지 URL을 저장하는 필드라고 가정
-    } else {
-      console.error("No such user!");
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching user profile image: ", error);
-    return null;
-  }
-}
-
 // 모든 유저의 포스트 가져오기
 export async function fetchAllPosts() {
   try {
     const querySnapshot = await getDocs(collection(db, "posts"));
     const posts = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
-    console.log("Fetched all posts: ", posts);
+    // console.log("Fetched all posts: ", posts);
     return posts;
   } catch (error) {
     console.error("Error fetching all posts: ", error);
+  }
+}
+
+// Top 5 posts (by number of likes and recent upload)
+export async function fetchTopPosts() {
+  try {
+    const querySnapshot = await getDocs(
+      query(
+        collection(db, "posts"),
+        orderBy("likes", "desc"), // Order by likes, in descending order
+        orderBy("createdAt", "desc"), // Then order by creation time, in descending order
+        limit(5) // Limit the result to 5 documents
+      )
+    );
+
+    const posts = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+    // console.log("Fetched top 5 posts: ", posts);
+    return posts;
+  } catch (error) {
+    console.error("Error fetching top 5 posts: ", error);
   }
 }
 
@@ -176,7 +184,7 @@ export async function fetchFriendsPosts(userId) {
     //  시간 순으로 정렬
     const sortedPosts = allPosts.sort((a, b) => b.createdAt - a.createdAt);
 
-    console.log("Fetched all posts: ", allPosts);
+    // console.log("Fetched all posts: ", allPosts);
     return sortedPosts;
   } catch (error) {
     console.error("Error fetching all posts: ", error);
@@ -189,22 +197,32 @@ export async function fetchUserPosts(userId) {
     const q = query(collection(db, "posts"), where("userId", "==", userId)); // userId가 입력받은 userId와 같은 모든 게시물을 가져옵니다.
     const querySnapshot = await getDocs(q);
     const posts = querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
-    console.log(`Fetched all posts of user ${userId}: `, posts);
+    // console.log(`Fetched all posts of user ${userId}: `, posts);
     return posts;
   } catch (error) {
     console.error(`Error fetching all posts of user ${userId}: `, error);
   }
 }
 
-// 유저 이름으로 친구 조회
-export async function fetchUserByName(name) {
+// 유저와 유저 친구들을 제외한 친구 검색
+export async function fetchUserByName(name, friendsList, uid) {
+  // include user's uid as a parameter
   try {
-    const querySnapshot = await getDocs(query(collection(db, "users"), where("name", "==", name)));
-    const users = querySnapshot.docs.map((doc) => doc.data());
-    console.log("Fetched users by name: ", users);
-    return users; // returns an array of users
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("name", "==", name));
+    const querySnapshot = await getDocs(q);
+
+    let users = [];
+    querySnapshot.forEach((doc) => {
+      users.push({ ...doc.data(), uid: doc.id });
+    });
+
+    // 이미 친구인 사람들과 자기 자신을 제외하고 반환
+    return users.filter(
+      (user) => !friendsList.some((friend) => friend.uid === user.uid) && user.uid !== uid
+    );
   } catch (error) {
-    console.error("Error fetching users by name: ", error);
+    console.error("Error fetching users: ", error);
   }
 }
 
@@ -221,9 +239,64 @@ export async function getUserDetails(userId) {
   }
 }
 
+// 기존 친구 요청을 확인하는 함수
+async function checkExistingRequest(requesterId, requesteeId) {
+  const querySnapshot = await getDocs(
+    query(
+      collection(db, "friendRequests"),
+      where("requesterId", "==", requesterId),
+      where("requesteeId", "==", requesteeId)
+    )
+  );
+  let existingRequest = null;
+  querySnapshot.forEach((doc) => {
+    // Document data may be undefined if no document is found
+    existingRequest = doc.data();
+  });
+  return existingRequest;
+}
+
+// 이미 친구인지 아닌지 확인
+async function checkIfFriends(userId1, userId2) {
+  const q1 = query(
+    collection(db, "friendRequests"),
+    where("requesterId", "==", userId1),
+    where("requesteeId", "==", userId2),
+    where("status", "==", "accepted")
+  );
+
+  const q2 = query(
+    collection(db, "friendRequests"),
+    where("requesterId", "==", userId2),
+    where("requesteeId", "==", userId1),
+    where("status", "==", "accepted")
+  );
+
+  const querySnapshot1 = await getDocs(q1);
+  const querySnapshot2 = await getDocs(q2);
+
+  // Check if any of the queries returned a document (which means the users are friends)
+  return !querySnapshot1.empty || !querySnapshot2.empty;
+}
+
 // 친구 요청 보내기
 export async function sendFriendRequest(requesterId, requesteeId) {
   try {
+    // Check if the users are already friends
+    const areFriends = await checkIfFriends(requesterId, requesteeId);
+    if (areFriends) {
+      console.log("Users are already friends: ", requesterId, requesteeId);
+      return;
+    }
+
+    // Check if the friend request already exists
+    const existingRequest = await checkExistingRequest(requesterId, requesteeId);
+
+    if (existingRequest) {
+      console.log("Friend request already exists: ", existingRequest);
+      return;
+    }
+
     const newRequest = {
       requesterId,
       requesteeId,
@@ -249,18 +322,24 @@ export async function fetchFriendRequests(requesteeId) {
     for (const doc of querySnapshot.docs) {
       const request = doc.data();
       const requester = await getUserDetails(request.requesterId);
-      const requestee = await getUserDetails(request.requesteeId);
-      requests.push({
-        id: doc.id,
-        requester: requester,
-        requestee: requestee,
-        status: request.status,
-      });
+
+      // Check if the users are already friends
+      const areFriends = await checkIfFriends(request.requesterId, requesteeId);
+      if (!areFriends) {
+        requests.push({
+          id: doc.id,
+          requester: requester,
+          status: request.status,
+        });
+      } else {
+        console.log("Users are already friends: ", request.requesterId, requesteeId);
+      }
     }
     console.log("Fetched friend requests: ", requests);
     return requests;
   } catch (error) {
     console.error("Error fetching friend requests: ", error);
+    return [];
   }
 }
 
@@ -276,6 +355,7 @@ export async function acceptFriendRequest(requestId) {
     console.error("Error accepting friend request: ", error);
   }
 }
+
 // 친구 요청 거절
 export async function rejectFriendRequest(requestId) {
   try {
@@ -288,6 +368,7 @@ export async function rejectFriendRequest(requestId) {
     console.error("Error rejecting friend request: ", error);
   }
 }
+
 // 친구 목록 조회
 export async function fetchFriends(userId) {
   try {
@@ -316,11 +397,27 @@ export async function fetchFriends(userId) {
       }
     }
 
-    console.log("Fetched friends: ", friends);
+    // console.log("Fetched friends: ", friends);
     return friends;
   } catch (error) {
     console.error("Error fetching friends: ", error);
   }
+}
+
+export async function updateLike(postId) {
+  const postRef = doc(db, "posts", postId);
+
+  // Increment the 'likes' field of the post
+  await updateDoc(postRef, {
+    likes: increment(1),
+  });
+}
+
+export async function getLikeCount(postId) {
+  const postRef = doc(db, "posts", postId);
+  const postSnapshot = await getDoc(postRef);
+  const postData = postSnapshot.data();
+  return postData.likes;
 }
 
 export { app, auth, db, storage };

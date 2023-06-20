@@ -1,7 +1,6 @@
 // UserSkylogs.js
 import React, { useEffect, useState, useContext } from "react"; // 'useEffect'와 'useState'를 import
 import { ScrollView, View, Text, StyleSheet, Image } from "react-native"; // 'Image'를 import
-import { color } from "react-native-elements/dist/helpers";
 import { fetchUserPosts } from "../database/FirebaseAuth"; // 'fetchUserPosts'를 import
 import { UserContext } from "../database/UserContext"; // UserContext를 import
 import { relativeTime, formatMonthDay } from "../utils/Functions";
@@ -52,7 +51,7 @@ const styles = StyleSheet.create({
   item: {
     width: 120,
     height: 120,
-    marginRight: 20,
+    marginHorizontal: 10,
     backgroundColor: "#ddd",
     justifyContent: "center",
     alignItems: "center",

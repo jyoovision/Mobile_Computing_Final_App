@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { Avatar } from "react-native-elements";
 import { fetchAllUsers, fetchUserByName } from "../database/FirebaseAuth";
@@ -30,21 +31,22 @@ const Friends = () => {
   const [friendsList, setFriendsList] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [requestSent, setRequestSent] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleSearch = async () => {
-    const users = await fetchUserByName(searchText);
+    const users = await fetchUserByName(searchText, friendsList, user.uid); // include user's uid
     setSearchResult(users);
   };
 
+  const fetchData = async () => {
+    const friendRequests = await fetchFriendRequests(user.uid);
+    const friends = await fetchFriends(user.uid);
+
+    setFriendRequests(friendRequests);
+    setFriendsList(friends);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const friendRequests = await fetchFriendRequests(user.uid); // 친구 요청을 가져옵니다.
-      const friends = await fetchFriends(user.uid); // 실제 친구 목록을 가져옵니다.
-
-      setFriendRequests(friendRequests);
-      setFriendsList(friends);
-    };
-
     fetchData();
   }, [user.uid]);
 
@@ -89,6 +91,12 @@ const Friends = () => {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true); // 새로고침 시작
+    await fetchData(); // 데이터를 새로 가져옵니다.
+    setRefreshing(false); // 새로고침 종료
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
@@ -97,15 +105,21 @@ const Friends = () => {
           value={searchText}
           onChangeText={setSearchText}
           placeholder="Search friends..."
+          placeholderTextColor="darkgray"
         />
-        <TouchableOpacity onPress={handleSearch}>
-          <Text>Search</Text>
+        <TouchableOpacity style={{ height: 30, justifyContent: "center" }} onPress={handleSearch}>
+          <Text style={{ color: "#007AFF", fontSize: 18 }}>Search</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={styles.List}>
+      <ScrollView
+        contentContainerStyle={styles.List}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {searchResult.length > 0 && (
           <>
-            <Text>Search Results ({searchResult.length})</Text>
+            <Text style={{ paddingVertical: 10, fontSize: 18 }}>
+              Search Results ({searchResult.length})
+            </Text>
             {searchResult.map((user, index) => (
               <View style={styles.result} key={index}>
                 <Avatar
@@ -130,7 +144,9 @@ const Friends = () => {
         )}
         {friendRequests.length > 0 && (
           <>
-            <Text>Friend Requests ({friendRequests.length})</Text>
+            <Text style={{ paddingVertical: 10, fontSize: 18 }}>
+              Friend Requests ({friendRequests.length})
+            </Text>
             {friendRequests.map((request, index) => (
               <View style={styles.request} key={index}>
                 <Avatar
@@ -145,11 +161,11 @@ const Friends = () => {
                 {/* <Text>{request.requester.name} wants to be your friend!</Text> */}
                 <View style={styles.acc_rej}>
                   <TouchableOpacity style={styles.Accept} onPress={() => acceptRequest(request.id)}>
-                    <Text>Accept</Text>
+                    <Text style={{ color: "green" }}>Accept</Text>
                   </TouchableOpacity>
                   <Text>|</Text>
                   <TouchableOpacity style={styles.Reject} onPress={() => rejectRequest(request.id)}>
-                    <Text>Reject</Text>
+                    <Text style={{ color: "red" }}>Reject</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -157,7 +173,7 @@ const Friends = () => {
           </>
         )}
 
-        <Text>Friends ({friendsList.length})</Text>
+        <Text style={{ paddingVertical: 10, fontSize: 18 }}>Friends ({friendsList.length})</Text>
         {friendsList.map((friend) => (
           <View style={styles.friend} key={friend.uid}>
             <Avatar
@@ -187,7 +203,8 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flexDirection: "row",
-    margin: 10,
+    margin: 20,
+    height: 30,
   },
   searchInput: {
     flex: 1,
@@ -200,7 +217,7 @@ const styles = StyleSheet.create({
   List: {
     flex: 1,
     alignItems: "center",
-    width: width - 40,
+    padding: 20,
   },
   Add: {
     position: "absolute",
@@ -214,8 +231,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 100,
   },
-  Accept: {},
-  Reject: {},
+  Accept: { color: "Green" },
+  Reject: { color: "Red" },
   result: {
     flexDirection: "row",
     width: width - 40,
